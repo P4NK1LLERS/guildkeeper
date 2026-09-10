@@ -1,0 +1,92 @@
+# -----------------------------------------------------------------------------
+# ATTENTION : ce dépôt est hébergé sur GitLab. Ce workflow GitHub Actions est
+# fourni par commodité (miroir éventuel) mais il N'EST PAS TESTÉ ni maintenu.
+# La CI de référence est .gitlab-ci.yml — en cas de divergence, c'est elle qui
+# fait foi.
+#
+# Les deux suites sont vertes : les tests à compléter par les étudiants
+# (@Tag("todo") / todo(...)) sont exclus du run par défaut
+# (./mvnw test -Ptodo / npm run test:todo pour les voir).
+# -----------------------------------------------------------------------------
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend-java:
+    name: Backend Java (mvnw verify)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Vérifier (spotless + tests + JaCoCo + jar)
+        working-directory: backend-java
+        run: ./mvnw -B verify
+      - name: Résumé des tests
+        if: always()
+        working-directory: backend-java
+        run: |
+          {
+            echo '### Tests Java'
+            echo '```'
+            grep -hR --include='*.txt' 'Tests run:' target/surefire-reports/ || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: guildkeeper-jar
+          path: backend-java/target/guildkeeper.jar
+          if-no-files-found: ignore
+
+  quests-ts:
+    name: Client TypeScript (npm run check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: quests-ts/.nvmrc
+          cache: npm
+          cache-dependency-path: quests-ts/package-lock.json
+      - name: Installer
+        working-directory: quests-ts
+        run: npm ci
+      - name: Vérifier (typecheck + lint + format + tests)
+        working-directory: quests-ts
+        run: npm run check
+
+  contrat-cross-stack:
+    name: Contrat cross-stack (serveur réel)
+    runs-on: ubuntu-latest
+    needs: backend-java
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: quests-ts/.nvmrc
+          cache: npm
+          cache-dependency-path: quests-ts/package-lock.json
+      - uses: actions/download-artifact@v4
+        with:
+          name: guildkeeper-jar
+          path: backend-java/target
+      - name: Démarrer le serveur puis lancer le contrat
+        run: |
+          GUILDKEEPER_ENV=dev java -jar backend-java/target/guildkeeper.jar &
+          for i in $(seq 1 30); do
+            node -e "fetch('http://localhost:7070/api/v1/quests').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" && break
+            sleep 1
+          done
+          cd quests-ts && npm ci && npm run test:contract

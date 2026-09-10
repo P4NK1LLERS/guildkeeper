@@ -1,0 +1,8 @@
+{
+    "id": "1",
+    "title": "Nettoyer les caves de la guilde",
+    "difficulty": "EASY",
+    "baseExperienceReward": 50,
+    "baseLootValue": 20,
+    "prerequisiteQuestId": null
+}

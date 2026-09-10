@@ -1,0 +1,12 @@
+[
+    {
+        "questId": "1",
+        "questTitle": "Nettoyer les caves de la guilde",
+        "status": "COMPLETED"
+    },
+    {
+        "questId": "2",
+        "questTitle": "Escorter la caravane marchande",
+        "status": "ASSIGNED"
+    }
+]

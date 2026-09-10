@@ -1,0 +1,44 @@
+[
+    {
+        "id": "950389ea-465a-4676-a71e-de98311edca8",
+        "name": "Albéric",
+        "rank": "NOVICE",
+        "experiencePoints": 0,
+        "luck": 1
+    },
+    {
+        "id": "f8a8e1c6-3a2b-4184-84f5-29fa09436508",
+        "name": "Attila",
+        "rank": "NOVICE",
+        "experiencePoints": 0,
+        "luck": 1
+    },
+    {
+        "id": "63d47d02-0474-45f9-a355-411ea94abe93",
+        "name": "Dante",
+        "rank": "NOVICE",
+        "experiencePoints": 0,
+        "luck": 1
+    },
+    {
+        "id": "3215b319-4af0-4429-8b85-4357d43099f1",
+        "name": "Dorian",
+        "rank": "NOVICE",
+        "experiencePoints": 0,
+        "luck": 1
+    },
+    {
+        "id": "270c378a-dba5-4827-abb9-540b44856337",
+        "name": "Dragan",
+        "rank": "NOVICE",
+        "experiencePoints": 0,
+        "luck": 1
+    },
+    {
+        "id": "280ae3c1-7db2-4011-b704-4b7a3806ed00",
+        "name": "Ektor",
+        "rank": "NOVICE",
+        "experiencePoints": 0,
+        "luck": 1
+    }
+]

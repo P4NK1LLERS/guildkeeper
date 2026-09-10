@@ -1,0 +1,65 @@
+# CI de référence de GuildKeeper (le dépôt est hébergé sur GitLab).
+#
+# Lance les deux suites à chaque push, sur n'importe quelle branche.
+# Les deux suites sont VERTES : les tests à compléter par les étudiants
+# (@Tag("todo") / todo(...)) sont exclus du run par défaut.
+#   - les voir : ./mvnw test -Ptodo  /  npm run test:todo
+
+stages:
+  - test
+  - contract
+
+backend-java:
+  stage: test
+  image: maven:3.9-eclipse-temurin-21
+  variables:
+    MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  cache:
+    key: maven
+    paths:
+      - .m2/repository
+  script:
+    - cd backend-java
+    - ./mvnw -B verify          # spotless:check + tests + JaCoCo + jar
+  artifacts:
+    when: always
+    paths:
+      - backend-java/target/guildkeeper.jar
+    reports:
+      junit:
+        - backend-java/target/surefire-reports/TEST-*.xml
+        - backend-java/target/cucumber-reports/Cucumber.xml
+    expire_in: 1 week
+
+quests-ts:
+  stage: test
+  image: node:22
+  cache:
+    key: npm
+    paths:
+      - quests-ts/node_modules
+  script:
+    - cd quests-ts
+    - npm ci
+    - npm run check              # typecheck + lint + format:check + tests
+    - npx vitest run --reporter=junit --outputFile=junit.xml
+  artifacts:
+    when: always
+    reports:
+      junit: quests-ts/junit.xml
+    expire_in: 1 week
+
+contrat-cross-stack:
+  stage: contract
+  image: timbru31/java-node:21-jdk-jod   # JDK 21 + Node 22 (« Jod ») — le tag -lts a disparu du registre
+  needs:
+    - job: backend-java
+      artifacts: true
+  script:
+    - GUILDKEEPER_ENV=dev java -jar backend-java/target/guildkeeper.jar &
+    - |
+      for i in $(seq 1 30); do
+        node -e "fetch('http://localhost:7070/api/v1/quests').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" && break
+        sleep 1
+      done
+    - cd quests-ts && npm ci && npm run test:contract

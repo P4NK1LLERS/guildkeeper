@@ -1,0 +1,8 @@
+[
+  { "questId": "1", "luck": 1, "experience": 50, "loot": 21 },
+  { "questId": "1", "luck": 10, "experience": 50, "loot": 30 },
+  { "questId": "2", "luck": 3, "experience": 120, "loot": 69 },
+  { "questId": "3", "luck": 1, "experience": 550, "loot": 315 },
+  { "questId": "3", "luck": 5, "experience": 550, "loot": 375 },
+  { "questId": "3", "luck": 10, "experience": 550, "loot": 450 }
+]

@@ -1,0 +1,36 @@
+# Java / Maven
+backend-java/target/
+backend-java/bin/
+bin/
+# Maven wrapper : on versionne mvnw / mvnw.cmd / .mvn/wrapper/*.properties,
+# pas la distribution telechargee.
+.mvn/wrapper/dists/
+.mvn/wrapper/*.jar
+
+# Node / TypeScript
+quests-ts/node_modules/
+quests-ts/dist/
+quests-ts/coverage/
+quests-ts/junit.xml
+.eslintcache
+
+# Base SQLite generee (dev / mode démo), jamais versionnee
+guildkeeper.db
+guildkeeper.db-wal
+guildkeeper.db-shm
+**/guildkeeper.db
+**/guildkeeper.db-wal
+**/guildkeeper.db-shm
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,35 @@
+{
+  "name": "@guild-keeper/progression-client",
+  "version": "1.0.0",
+  "description": "Client TypeScript de l'API GuildKeeper : client HTTP lecture seule, planner de progression et CLI.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "cli": "node --disable-warning=ExperimentalWarning src/cli/main.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:todo": "cross-env GUILDKEEPER_TODO=1 vitest run",
+    "test:contract": "cross-env GUILDKEEPER_CONTRACT=1 vitest run tests/contract",
+    "coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "build": "tsc --project tsconfig.build.json",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
+    "clean": "node -e \"const fs=require('fs');for(const d of ['dist','coverage'])fs.rmSync(d,{recursive:true,force:true})\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.1",
+    "@vitest/coverage-v8": "^5.0.0",
+    "cross-env": "^10.1.0",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.69.0",
+    "vitest": "^5.0.0"
+  }
+}

@@ -1,0 +1,226 @@
+###############################################################################
+# GuildKeeper — API HTTP  (référence + exemples exécutables)
+#
+# Fichier au format « REST Client » (VS Code) / client HTTP IntelliJ : chaque
+# bloc `###` est une requête réelle, exécutable telle quelle.
+#
+# Démarrer le serveur :
+#   cd backend-java && GUILDKEEPER_ENV=dev ./mvnw -q compile exec:java
+#   (ou : ./mvnw -q -DskipTests package && java -jar target/guildkeeper.jar)
+#   GUILDKEEPER_ENV=dev seede quelques membres et attributions de quêtes.
+#
+# Conventions
+#   - Toutes les routes sont préfixées par /api/v1.
+#   - Réponses en JSON (UTF-8).
+#   - Le module TypeScript ne consomme que les GET ; les écritures sont
+#     documentées ici et couvertes par les tests JavalinTest côté Java.
+#   - Corps d'erreur, toujours la même forme :
+#       { "error": "<CODE>", "message": "<texte lisible>" }
+#     CODE ∈ { VALIDATION (400), NOT_FOUND (404), CONFLICT (409), INTERNAL (500) }.
+#
+# Types de réponse (records Java `http/dto/`, interfaces TS `src/client/dto.ts`)
+#   QuestDto           { id, title, difficulty, baseExperienceReward,
+#                        baseLootValue, prerequisiteQuestId }
+#                        difficulty ∈ EASY | MEDIUM | HARD | LEGENDARY
+#                        prerequisiteQuestId : string | null
+#   MemberDto          { id (uuid), name, rank, experiencePoints, luck }
+#                        rank ∈ NOVICE | APPRENTICE | VETERAN | ELITE | GUILD_MASTER
+#                        luck ∈ 1..10
+#   AssignmentDto      { questId, questTitle, status }
+#                        status ∈ ASSIGNED | COMPLETED | ABANDONED
+#   GuildStatusDto     { balance, memberCount }
+#   RewardPreviewDto   { questId, luck, experience, loot }
+#   RewardsResultDto   { experienceGained, lootValue, member: MemberDto }
+#   PromotionResultDto { promoted (bool), previousRank, member: MemberDto }
+###############################################################################
+
+# Doit correspondre au port du serveur (GUILDKEEPER_PORT, défaut 7070).
+@host   = http://localhost:7071
+# Membre pré-chargé par le seed `dev` (quête 1 complétée, quête 2 en cours).
+@member = Dragan
+# Recrue créée par le bloc « Recruter » puis suivie sur tout le cycle de vie.
+@rookie = Perceval
+@quest  = 1
+
+# NB : la base est persistée. Les écritures qui créent ou consomment un état
+#     (recruter, assigner, compléter…) ne réussissent que la première fois ;
+#     relancées, elles renvoient 409. Repartir d'une base neuve : supprimer
+#     guildkeeper.db* puis redémarrer le serveur.
+
+
+###############################################################################
+# QUÊTES
+###############################################################################
+
+### Catalogue complet
+# GET /api/v1/quests
+# → 200  QuestDto[]  (ordre du catalogue : caves → caravane → dragon)
+GET {{host}}/api/v1/quests
+Accept: application/json
+
+
+### Une quête par identifiant
+# GET /api/v1/quests/{id}
+# → 200  QuestDto
+# → 404  NOT_FOUND   identifiant absent du catalogue
+GET {{host}}/api/v1/quests/{{quest}}
+
+
+### Récompense estimée d'une quête — VALEUR AUTORITATIVE
+# GET /api/v1/quests/{id}/reward-preview?luck={1..10}
+# Point de vue d'un membre NOVICE. Le planner TypeScript (`simulateReward`)
+# reproduit ce calcul ; un test de contrat vérifie qu'ils restent d'accord.
+# → 200  RewardPreviewDto
+# → 400  VALIDATION   'luck' manquant, non entier, ou hors 1..10
+# → 404  NOT_FOUND    quête inconnue
+GET {{host}}/api/v1/quests/3/reward-preview?luck=5
+
+
+###############################################################################
+# MEMBRES
+###############################################################################
+
+### Liste des membres (triée par nom)
+# GET /api/v1/members
+# → 200  MemberDto[]
+GET {{host}}/api/v1/members
+
+
+### Un membre par nom
+# GET /api/v1/members/{name}
+# → 200  MemberDto
+# → 404  NOT_FOUND
+GET {{host}}/api/v1/members/{{member}}
+
+
+### Attributions de quêtes d'un membre
+# GET /api/v1/members/{name}/assignments
+# → 200  AssignmentDto[]   (vide si aucune attribution)
+# → 404  NOT_FOUND         membre inconnu
+GET {{host}}/api/v1/members/{{member}}/assignments
+
+
+# --- Cycle de vie d'une recrue : recruter → assigner → compléter → promouvoir --
+# (à jouer dans l'ordre, une fois, sur une base fraîche)
+
+### Recruter un membre
+# POST /api/v1/members
+# body  { "name": string }   (non vide ; les prénoms « classiques » sont une
+#                              convention de rédaction, pas une contrainte)
+# → 201  MemberDto           rang NOVICE, 0 XP, chance 1
+# → 400  VALIDATION          'name' manquant ou vide
+# → 409  CONFLICT            un membre du même nom existe déjà
+POST {{host}}/api/v1/members
+Content-Type: application/json
+
+{ "name": "{{rookie}}" }
+
+
+### Assigner une quête à un membre
+# POST /api/v1/members/{name}/quests
+# body  { "questId": string }
+# → 201  AssignmentDto       status ASSIGNED
+# → 400  VALIDATION          'questId' manquant
+# → 404  NOT_FOUND           membre ou quête inconnus
+# → 409  CONFLICT            le membre a déjà une quête en cours,
+#                            ou le prérequis n'est pas complété
+#                            (message : le TITRE du prérequis, pas son id)
+POST {{host}}/api/v1/members/{{rookie}}/quests
+Content-Type: application/json
+
+{ "questId": "{{quest}}" }
+
+
+### Compléter une quête en cours
+# POST /api/v1/members/{name}/quests/{id}/completion
+# (pas de corps)  distribue l'XP + le butin, passe l'attribution à COMPLETED
+# → 200  RewardsResultDto    member = état du membre après crédit de l'XP
+# → 404  NOT_FOUND           membre ou quête inconnus
+# → 409  CONFLICT            quête déjà complétée, ou pas en cours pour ce membre
+POST {{host}}/api/v1/members/{{rookie}}/quests/{{quest}}/completion
+
+
+### Promouvoir un membre
+# POST /api/v1/members/{name}/promotion
+# (pas de corps)  promeut d'un rang si l'XP atteint le seuil
+#   (APPRENTICE 100, VETERAN 300, ELITE 700, GUILD_MASTER 1500)
+# → 200  PromotionResultDto  { promoted: false, ... } si conditions non remplies
+#                            (ce n'est PAS une erreur — ici la recrue n'a que 50 XP)
+# → 404  NOT_FOUND
+POST {{host}}/api/v1/members/{{rookie}}/promotion
+
+
+###############################################################################
+# COMPTE DE GUILDE
+###############################################################################
+
+### État de synthèse
+# GET /api/v1/guild
+# → 200  GuildStatusDto
+GET {{host}}/api/v1/guild
+
+
+### Déposer sur le compte
+# POST /api/v1/guild/deposits
+# body  { "amount": int }   (strictement positif)
+# → 200  GuildStatusDto     solde mis à jour
+# → 400  VALIDATION         'amount' manquant, nul ou négatif
+POST {{host}}/api/v1/guild/deposits
+Content-Type: application/json
+
+{ "amount": 500 }
+
+
+### Distribuer du butin (débite le compte)
+# POST /api/v1/guild/loot-distributions
+# body  { "amount": int }
+# → 200  GuildStatusDto
+# → 400  VALIDATION         'amount' manquant
+# → 409  CONFLICT           solde insuffisant
+POST {{host}}/api/v1/guild/loot-distributions
+Content-Type: application/json
+
+{ "amount": 120 }
+
+
+###############################################################################
+# NON DISPONIBLE
+#
+# Aucun endpoint ne distribue de dividendes : c'est un livrable étudiant
+# du projet final, à développer en TDD. Les instructions sont données avec
+# le projet final.
+###############################################################################
+
+
+###############################################################################
+# EXEMPLES D'ERREURS
+###############################################################################
+
+### 400 VALIDATION — nom de recrue vide
+POST {{host}}/api/v1/members
+Content-Type: application/json
+
+{ "name": "   " }
+
+
+### 404 NOT_FOUND — membre inconnu
+GET {{host}}/api/v1/members/Personne
+
+
+### 404 NOT_FOUND — route inconnue
+GET {{host}}/api/v1/does-not-exist
+
+
+### 409 CONFLICT — recruter un membre déjà présent
+#   (un des prénoms du seed `dev`)
+POST {{host}}/api/v1/members
+Content-Type: application/json
+
+{ "name": "{{member}}" }
+
+
+### 409 CONFLICT — distribuer plus que le solde
+POST {{host}}/api/v1/guild/loot-distributions
+Content-Type: application/json
+
+{ "amount": 999999 }
