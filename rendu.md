@@ -1,8 +1,8 @@
 # GuildKeeper - Projet final
 
-**Nom :**
-**Date :**
-**Dépôt Git :**
+**Nom : Falc'hun Victor**
+**Date : 10/09/2026 **
+**Dépôt Git : https://github.com/P4NK1LLERS/guildkeepe **
 
 > Ce fichier a deux rôles : la checklist ci-dessous sert de suivi pendant les 3 heures, la synthèse en fin de fichier est le livrable 5. Garder la synthèse sur une page maximum.
 
