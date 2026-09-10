@@ -33,9 +33,9 @@ Un cycle rouge -> vert -> refactor à chaque palier, chaque test écrit avant le
 
 ### Contrôles avant rendu
 
-- [ ] `./mvnw test` et `npm test` verts
+- [x] `./mvnw test` et `npm test` verts
 - [x] `./mvnw test -Ptodo` vert : plus aucun message « Test à compléter »
-- [ ] `npm run test:todo` vert
+- [x] `npm run test:todo` vert
 - [x] couverture du module `finance` supérieure ou égale à 80 %
 - [ ] aucun test flaky : la suite passe aussi quand l'ordre des tests change
 - [x] méthodes existantes de `GuildFinanceService` non modifiées (hors `distributeDividends`)
